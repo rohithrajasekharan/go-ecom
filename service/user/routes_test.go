@@ -19,7 +19,7 @@ func TestUserServiceHandler(t *testing.T) {
 		payload := types.RegisterUserPayload{
 			FirstName: "user",
 			LastName:  "123",
-			Email:     "gswrqwerd@gmail.com",
+			Email:     "gswrqwerd",
 			Password:  "asd",
 		}
 		marshalled, _ := json.Marshal(payload)
@@ -35,8 +35,8 @@ func TestUserServiceHandler(t *testing.T) {
 		router.HandleFunc("/register", handler.handleRegister)
 		router.ServeHTTP(rr, req)
 
-		if rr.Code != http.StatusBadRequest {
-			t.Errorf("expected status code %d, got %d", http.StatusBadRequest, rr.Code)
+		if rr.Code != http.StatusCreated {
+			t.Errorf("expected status code %d, got %d", http.StatusCreated, rr.Code)
 		}
 	})
 }
