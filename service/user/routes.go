@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/rohithrajasekharan/go-ecom/service/auth"
 	"github.com/rohithrajasekharan/go-ecom/types"
 	"github.com/rohithrajasekharan/go-ecom/utils"
@@ -26,34 +27,43 @@ func (h *Handler) handleLogin(w http.ResponseWriter, req *http.Request) {
 
 }
 
-func (h *Handler) handleRegister(w http.ResponseWriter, req *http.Request) {
-	var payload types.RegisterUserPayload
-	if err := utils.ParseJson(req, payload); err != nil {
+func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
+	var user types.RegisterUserPayload
+	if err := utils.ParseJSON(r, &user); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err)
-	}
-
-	_, err := h.store.GetUserByEmail(payload.Email)
-	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("user with email %s already exists", payload.Email))
 		return
 	}
 
-	hashedPassword, err := auth.HashPassword(payload.Password)
+	if err := utils.Validate.Struct(user); err != nil {
+		errors := err.(validator.ValidationErrors)
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("invalid payload: %v", errors))
+		return
+	}
+
+	// check if user exists
+	_, err := h.store.GetUserByEmail(user.Email)
+	if err == nil {
+		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("user with email %s already exists", user.Email))
+		return
+	}
+
+	// hash password
+	hashedPassword, err := auth.HashPassword(user.Password)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
+
 	err = h.store.CreateUser(types.User{
-		FirstName: payload.FirstName,
-		LastName:  payload.LastName,
-		Email:     payload.Email,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Email:     user.Email,
 		Password:  hashedPassword,
 	})
-
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	utils.WriteJson(w, http.StatusCreated, nil)
+	utils.WriteJSON(w, http.StatusCreated, nil)
 }
