@@ -2,32 +2,31 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 
-	"github.com/go-sql-driver/mysql"
 	"github.com/rohithrajasekharan/go-ecom/cmd/api"
 	"github.com/rohithrajasekharan/go-ecom/config"
 	"github.com/rohithrajasekharan/go-ecom/db"
 )
 
 func main() {
-	cfg := mysql.Config{
-		User:                 config.Envs.DBUser,
-		Passwd:               config.Envs.DBPassword,
-		Addr:                 config.Envs.DBAddress,
-		DBName:               config.Envs.DBName,
-		Net:                  "tcp",
-		AllowNativePasswords: true,
-		ParseTime:            true,
-	}
-	db, err := db.NewMySQLStorage(cfg)
+	connStr := fmt.Sprintf(
+		"postgresql://%s:%s@%s/%s?sslmode=require",
+		config.Envs.DBUser,
+		config.Envs.DBPassword,
+		config.Envs.DBHost,
+		config.Envs.DBName,
+	)
+
+	db, err := db.NewMySQLStorage(connStr)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	initStorage(db)
 
-	server := api.NewAPIServer(":8090", db)
+	server := api.NewAPIServer(":8080", nil)
 	if err := server.Run(); err != nil {
 		log.Fatal(err)
 	}
