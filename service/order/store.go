@@ -1,8 +1,10 @@
-package products
+package order
 
 import (
 	"database/sql"
+	"fmt"
 
+	"github.com/lib/pq"
 	"github.com/rohithrajasekharan/go-ecom/types"
 )
 
@@ -15,16 +17,16 @@ func NewStore(db *sql.DB) *Store {
 }
 
 func (s *Store) CreateOrder(order types.Order) (int, error) {
-	res, err := s.db.Exec("INSERT INTO orders (userId, total, status, address) VALUES ($1, $2, $3, $4)",
-		order.UserID, order.Total, order.Status, order.Address)
+	var id int
+	err := s.db.QueryRow("INSERT INTO orders (userId, total, status, address) VALUES ($1, $2, $3, $4) RETURNING id",
+		order.UserID, order.Total, order.Status, order.Address).Scan(&id)
 	if err != nil {
-		return 0, err
+		if pgErr, ok := err.(*pq.Error); ok {
+			return 0, fmt.Errorf("failed to create order: %s (Code: %s)", pgErr.Message, pgErr.Code)
+		}
+		return 0, fmt.Errorf("failed to create order: %w", err)
 	}
-	id, err := res.LastInsertId()
-	if err != nil {
-		return 0, err
-	}
-	return int(id), nil
+	return id, nil
 }
 
 func (s *Store) CreateOrderItem(orderItem types.OrderItem) error {

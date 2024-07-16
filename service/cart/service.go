@@ -25,7 +25,7 @@ func (h *Handler) createOrder(ps []types.Product, items []types.CartItem, userID
 	}
 
 	if err := checkIfCartIsInStock(items, productMap); err != nil {
-		return 0, 0, nil
+		return 0, 0, err
 	}
 	totalPrice := calculateTotalPrice(items, productMap)
 	for _, item := range items {
